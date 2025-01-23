@@ -61,7 +61,7 @@ action:
           - service: light.turn_off
             target:
               area_id: "{{ area }}"
-      - conditions:
+      - conditions: 
           - condition: template
             value_template: >
               {{ command_type == 'step' and trigger.event.data.args[0] == 0 }}
