@@ -49,14 +49,14 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.event.data.command == 'on_short_release' }}"
+            value_template: "{{ command_type == 'on_press' }}"
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
       - conditions:
           - condition: template
-            value_template: "{{ trigger.event.data.command == 'off_short_release' }}"
+            value_template: "{{ command_type == 'off_press' }}"
         sequence:
           - service: light.turn_off
             target:
