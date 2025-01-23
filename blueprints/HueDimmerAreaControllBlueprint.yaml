@@ -32,6 +32,20 @@ variables:
 condition: []
 
 action:
+  - variables:
+      command_type: '{{ trigger.event.data.command }}'
+  - service: logbook.log
+    data:
+      name: Device
+      message: '{{ device_id }}'
+  - service: logbook.log
+    data:
+      name: Command
+      message: '{{ command_type }}'
+  - service: logbook.log
+    data:
+      name: device_id
+      message: '{{ trigger.event.data.device_id }}'      
   - choose:
       - conditions:
           - condition: template
