@@ -35,14 +35,14 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger_action | string in button_on_short }}"
+            value_template: {{ trigger.event.data.command == 'on'}}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
       - conditions:
           - condition: template
-            value_template: "{{ trigger_action | string in button_off_short }}"
+            value_template: {{ trigger.event.data.command == 'off'}}
         sequence:
           - service: light.turn_off
             target:
