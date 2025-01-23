@@ -15,7 +15,7 @@ blueprint:
       description: The Philips Hue Dimmer Switch paired with ZHA.
       selector:
         device:
-          integration: zha          
+          integration: zha
 
 mode: restart
 max_exceeded: silent
@@ -49,31 +49,22 @@ condition: []
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            id: on_button
-            platform: device
-            type: remote_button_short_press
-            subtype: button_1
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'on' }}"
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
       - conditions:
-          - condition: trigger
-            id: off_button
-            platform: device
-            type: remote_button_short_press
-            subtype: button_4
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'off' }}"
         sequence:
           - service: light.turn_off
             target:
               area_id: "{{ area }}"
       - conditions:
-          - condition: trigger
-            id: dim_up_button
-            platform: device
-            type: remote_button_short_press
-            subtype: button_2
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 0 }}"
         sequence:
           - service: light.turn_on
             target:
@@ -81,11 +72,8 @@ action:
             data:
               brightness_step_pct: 10
       - conditions:
-          - condition: trigger
-            id: dim_down_button
-            platform: device
-            type: remote_button_short_press
-            subtype: button_3
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 1 }}"
         sequence:
           - service: light.turn_on
             target:
