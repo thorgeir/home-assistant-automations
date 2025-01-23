@@ -15,9 +15,7 @@ blueprint:
       description: The Philips Hue Dimmer Switch paired with ZHA.
       selector:
         device:
-          integration: zha
-          manufacturer: Signify Netherlands B.V.
-          model: RWL021
+          integration: zha          
 
 mode: restart
 max_exceeded: silent
