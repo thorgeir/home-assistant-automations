@@ -1,0 +1,96 @@
+blueprint:
+  name: Philips Hue Dimmer Switch (ZHA)
+  description: >
+    Control lights in a specified area using the Philips Hue Dimmer Switch (ZHA), 
+    replicating the default behavior of the Philips Hue app.
+  domain: automation
+  input:
+    area:
+      name: Area
+      description: The area whose lights will be controlled by the dimmer switch.
+      selector:
+        area: {}
+    dimmer_device:
+      name: Dimmer Device
+      description: The Philips Hue Dimmer Switch paired with ZHA.
+      selector:
+        device:
+          integration: zha
+          manufacturer: Signify Netherlands B.V.
+          model: RWL021
+
+mode: restart
+max_exceeded: silent
+trigger:
+  - platform: device
+    domain: zha
+    device_id: !input dimmer_device
+    type: remote_button_short_press
+    subtype: button_1
+  - platform: device
+    domain: zha
+    device_id: !input dimmer_device
+    type: remote_button_short_press
+    subtype: button_4
+  - platform: device
+    domain: zha
+    device_id: !input dimmer_device
+    type: remote_button_short_press
+    subtype: button_2
+  - platform: device
+    domain: zha
+    device_id: !input dimmer_device
+    type: remote_button_short_press
+    subtype: button_3
+
+variables:
+  area: !input area
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: on_button
+            platform: device
+            type: remote_button_short_press
+            subtype: button_1
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+      - conditions:
+          - condition: trigger
+            id: off_button
+            platform: device
+            type: remote_button_short_press
+            subtype: button_4
+        sequence:
+          - service: light.turn_off
+            target:
+              area_id: "{{ area }}"
+      - conditions:
+          - condition: trigger
+            id: dim_up_button
+            platform: device
+            type: remote_button_short_press
+            subtype: button_2
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              brightness_step_pct: 10
+      - conditions:
+          - condition: trigger
+            id: dim_down_button
+            platform: device
+            type: remote_button_short_press
+            subtype: button_3
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              brightness_step_pct: -10
