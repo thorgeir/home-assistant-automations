@@ -34,6 +34,7 @@ condition: []
 action:
   - variables:
       command_type: '{{ trigger.event.data.command }}'
+      args: '{{ trigger.event.data.args }}'
   - service: logbook.log
     data:
       name: Device
@@ -64,7 +65,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 0 }}
+              {{ command_type == 'step' and args[0] == 0 }}
         sequence:
           - service: light.turn_on
             target:
@@ -74,10 +75,32 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 1 }}
+              {{ command_type == 'step' and args[0] == 1 }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
               brightness_step_pct: -10
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ command_type == 'on_hold'}}
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              color_temp_step: 15
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ command_type == 'off_hold'}}
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              color_temp_step: -15
+        
+
