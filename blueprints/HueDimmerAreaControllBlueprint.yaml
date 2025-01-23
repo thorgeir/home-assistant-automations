@@ -16,6 +16,7 @@ blueprint:
       selector:
         device:
           integration: zha
+          model: RWL021
 
 mode: restart
 max_exceeded: silent
