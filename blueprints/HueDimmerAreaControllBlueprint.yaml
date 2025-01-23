@@ -1,7 +1,7 @@
 blueprint:
   name: Philips Hue Dimmer Switch (ZHA)
   description: >
-    Control lights in a specified area using the Philips Hue Dimmer Switch (ZHA), 
+    Control lights in a specified area using the Philips Hue Dimmer Switch (ZHA),
     replicating the default behavior of the Philips Hue app.
   domain: automation
   input:
@@ -64,7 +64,8 @@ action:
               area_id: "{{ area }}"
       - conditions:
           - condition: template
-            value_template: "{{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 0 }}"
+            value_template: >
+              {{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 0 }}
         sequence:
           - service: light.turn_on
             target:
@@ -73,7 +74,8 @@ action:
               brightness_step_pct: 10
       - conditions:
           - condition: template
-            value_template: "{{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 1 }}"
+            value_template: >
+              {{ trigger.event.data.command == 'step' and trigger.event.data.args[0] == 1 }}
         sequence:
           - service: light.turn_on
             target:
