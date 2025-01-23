@@ -20,26 +20,30 @@ blueprint:
 mode: restart
 max_exceeded: silent
 trigger:
-  - platform: device
-    domain: zha
-    device_id: !input dimmer_device
-    type: remote_button_short_press
-    subtype: button_1
-  - platform: device
-    domain: zha
-    device_id: !input dimmer_device
-    type: remote_button_short_press
-    subtype: button_4
-  - platform: device
-    domain: zha
-    device_id: !input dimmer_device
-    type: remote_button_short_press
-    subtype: button_2
-  - platform: device
-    domain: zha
-    device_id: !input dimmer_device
-    type: remote_button_short_press
-    subtype: button_3
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input dimmer_device
+      command: "on"
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input dimmer_device
+      command: "off"
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input dimmer_device
+      command: "step"
+      args:
+        - 0  # Dim Up
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input dimmer_device
+      command: "step"
+      args:
+        - 1  # Dim Down
 
 variables:
   area: !input area
