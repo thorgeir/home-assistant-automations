@@ -37,16 +37,8 @@ action:
       args: '{{ trigger.event.data.args }}'
   - service: logbook.log
     data:
-      name: Device
-      message: '{{ device_id }}'
-  - service: logbook.log
-    data:
       name: Command
-      message: '{{ command_type }}'
-  - service: logbook.log
-    data:
-      name: device_id
-      message: '{{ trigger.event.data.device_id }}'      
+      message: '{{ command_type }} args: {{args}}'
   - choose:
       - conditions:
           - condition: template
@@ -65,7 +57,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ command_type == 'step' and args[0] == 0 }}
+              {{ command_type == 'step' and trigger.event.data.args[0] == 0 }}
         sequence:
           - service: light.turn_on
             target:
@@ -75,7 +67,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ command_type == 'step' and args[0] == 1 }}
+              {{ command_type == 'step' and trigger.event.data.args[0] == 1 }}
         sequence:
           - service: light.turn_on
             target:
