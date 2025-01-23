@@ -49,14 +49,14 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: {{ command_type == 'on'}}
+            value_template: {{ command_type == "on"}}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
       - conditions:
           - condition: template
-            value_template: {{ command_type == 'off'}}
+            value_template: {{ command_type == "off"}}
         sequence:
           - service: light.turn_off
             target:
@@ -64,7 +64,7 @@ action:
       - conditions: 
           - condition: template
             value_template: >
-              {{ command_type == 'step' and trigger.event.data.args[0] == 0 }}
+              {{ command_type == "step" and trigger.event.data.args[0] == 0 }}
         sequence:
           - service: light.turn_on
             target:
@@ -74,7 +74,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ command_type == 'step' and trigger.event.data.args[0] == 1 }}
+              {{ command_type == "step" and trigger.event.data.args[0] == 1 }}
         sequence:
           - service: light.turn_on
             target:
