@@ -1,98 +1,129 @@
 blueprint:
-  name: Philips Hue Dimmer Switch (ZHA)
-  description: >
-    Control lights in a specified area using the Philips Hue Dimmer Switch (ZHA),
-    replicating the default behavior of the Philips Hue app.
+  name: Philips Hue Dimmer Switch (zigbee2mqtt)
+  description: "Control lights in a specified area using the Philips Hue Dimmer Switch, replicating the default behavior of the Philips Hue app."
   domain: automation
   input:
     area:
       name: Area
       description: The area whose lights will be controlled by the dimmer switch.
       selector:
-        area: {}
+        area:
+          multiple: false
     dimmer_device:
       name: Dimmer Device
-      description: The Philips Hue Dimmer Switch paired with ZHA.
+      description: The Philips Hue Dimmer Switch paired with mqtt.
       selector:
         device:
-          integration: zha
-          model: RWL021
-
+          integration: mqtt
+          model: "Hue dimmer switch"
+          multiple: false
+  source_url: https://github.com/thorgeir/home-assistant-automations/blob/main/blueprints/HueDimmerAreaControllBlueprint.yaml
 mode: restart
 max_exceeded: silent
-trigger:
-  - platform: event
-    event_type: zha_event
-    event_data:
-      device_id: !input dimmer_device
 
 variables:
+  device_id: !input dimmer_device
   area: !input area
 
-condition: []
+trigger:
+  - platform: mqtt
+    topic: "zigbee2mqtt/+/action"
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.topic == 'zigbee2mqtt/' ~ device_attr(device_id, 'name') ~ '/action' }}"
 
 action:
+  # Capture the action from the event payload (replace "action" with the proper key if needed)
   - variables:
-      command_type: '{{ trigger.event.data.command }}'
-      args: '{{ trigger.event.data.args }}'
+      payload: "{{ trigger.payload }}"
   - service: logbook.log
     data:
-      name: Command
-      message: '{{ command_type }} args: {{args}}'
+      name: Dimmer Command
+      message: "Action received: >{{ payload }}<"
   - choose:
+      # On/off
       - conditions:
           - condition: template
-            value_template: "{{ command_type == 'on_press' }}"
+            value_template: "{{ payload == 'on_press_release' }}"
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
       - conditions:
           - condition: template
-            value_template: "{{ command_type == 'off_press' }}"
+            value_template: "{{ payload == 'off_press_release' }}"
         sequence:
           - service: light.turn_off
             target:
               area_id: "{{ area }}"
+
+      #Up button
       - conditions:
           - condition: template
             value_template: >
-              {{ command_type == 'step' and trigger.event.data.args[0] == 0 }}
+              {{ payload == 'up_press' }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
               brightness_step_pct: 10
+              transition: 1
       - conditions:
           - condition: template
             value_template: >
-              {{ command_type == 'step' and trigger.event.data.args[0] == 1 }}
+              {{ payload == 'up_hold' }}
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              brightness_step_pct: 20
+              transition: 1
+
+      #Down button
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ payload == 'down_press' }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
               brightness_step_pct: -10
+              transition: 1
       - conditions:
           - condition: template
             value_template: >
-              {{ command_type == 'on_hold'}}
+              {{ payload == 'down_hold' }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
-              color_temp_step: 15
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ command_type == 'off_hold'}}
-        sequence:
-          - service: light.turn_on
-            target:
-              area_id: "{{ area }}"
-            data:
-              color_temp_step: -15
-        
+              brightness_step_pct: -20
+              transition: 1
 
+      #On/Off Hold
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ payload == 'off_hold' }}
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              brightness: 2
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ payload == 'on_hold' }}
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              brightness: 255
