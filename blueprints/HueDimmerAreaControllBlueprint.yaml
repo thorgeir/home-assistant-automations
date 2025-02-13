@@ -44,12 +44,6 @@ action:
       lights_temps: "{{ (expand(area_entities(area_name(area)) | select('match', 'light')) | list | first).attributes.color_temp }}"
       area_scenes: "{{ expand(area_entities(area_name(area)) | select('match', 'scene') | list) }}"
 
-  - service: mqtt.publish
-    data:
-      topic: "{{ 'zigbee2mqtt/' ~ device_attr(device_id, 'name') ~ '/sceneid' }}"
-      payload: "42"
-      retain: true
-
   #  - service: logbook.log
   #    data:
   #      name: Dimmer Command
