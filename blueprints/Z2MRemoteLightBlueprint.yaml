@@ -1,5 +1,5 @@
 blueprint:
-  name: Philips Hue Dimmer Switch (zigbee2mqtt)
+  name: Zigbee2Mqtt Remote Blueprint
   description: "Control lights in a specified area using the Philips Hue Dimmer Switch, replicating the default behavior of the Philips Hue app."
   domain: automation
   input:
