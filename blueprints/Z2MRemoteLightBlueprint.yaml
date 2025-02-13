@@ -1,32 +1,31 @@
 blueprint:
-  name: Zigbee2Mqtt Remote Blueprint
-  description: "Control lights in a specified area using the Philips Hue Dimmer Switch, replicating the default behavior of the Philips Hue app."
+  name: Dimmer Switch – Light Group Control (zigbee2mqtt)
+  description: >
+    Control a light group using the Philips Hue Dimmer Switch,
+    replicating the default behavior of the Philips Hue app.
   domain: automation
   input:
-    area:
-      name: Area
-      description: The area whose lights will be controlled by the dimmer switch.
+    light_group:
+      name: Light Group
+      description: The light group whose lights will be controlled by the dimmer switch.
       selector:
-        area:
-          multiple: false
+        entity:
+          domain: light
     dimmer_device:
       name: Dimmer Device
-      description: The Philips Hue Dimmer Switch paired with mqtt.
+      description: The Philips Hue Dimmer Switch paired with MQTT.
       selector:
         device:
           integration: mqtt
           entity:
             - domain: sensor
-              #device_class: [button]
-          #model: "Hue dimmer switch"
-          #multiple: false
   source_url: https://github.com/thorgeir/home-assistant-automations/blob/main/blueprints/HueDimmerAreaControllBlueprint.yaml
 mode: restart
 max_exceeded: silent
 
 variables:
   device_id: !input dimmer_device
-  area: !input area
+  light_group: !input light_group
 
 trigger:
   - platform: mqtt
@@ -34,15 +33,24 @@ trigger:
 
 condition:
   - condition: template
-    value_template: "{{ trigger.topic == 'zigbee2mqtt/' ~ device_attr(device_id, 'name') ~ '/action' }}"
+    value_template: >
+      {{ trigger.topic == 'zigbee2mqtt/' ~ device_attr(device_id, 'name') ~ '/action' }}
 
 action:
-  # Capture the action from the event payload (replace "action" with the proper key if needed)
   - variables:
       payload: "{{ trigger.payload }}"
-      lights_on_count: "{{ expand(area_entities(area_name(area)) | select('match', 'light')) | selectattr('state', 'eq', 'on') | list | count }}"
-      lights_temps: "{{ (expand(area_entities(area_name(area)) | select('match', 'light')) | list | first).attributes.color_temp }}"
-      area_scenes: "{{ expand(area_entities(area_name(area)) | select('match', 'scene') | list) }}"
+      # Get the list of entity IDs from the selected group (defaulting to an empty list)
+      group_entities: "{{ state_attr(light_group, 'entity_id') | default([]) }}"
+      lights_on_count: >
+        {{ expand(group_entities)
+           | selectattr('state', 'eq', 'on')
+           | list | count }}
+      lights_temps: >
+        {{ (expand(group_entities) | list | first).attributes.color_temp }}
+      group_scenes: >
+        {{ expand(group_entities)
+           | selectattr('entity_id', 'match', 'scene')
+           | list }}
 
   - service: mqtt.publish
     data:
@@ -50,87 +58,85 @@ action:
       payload: "42"
       retain: true
 
-  #  - service: logbook.log
-  #    data:
-  #      name: Dimmer Command
-  #      message: "Action received: >{{ payload }}<"
-
   - service: logbook.log
     data:
       name: Dimmer Command
       message: "Light temp : >{{ lights_temps }}<"
 
   - choose:
-      #scene 250 to 454
+      # Lower color temperature when already on and above threshold
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'on_press_release' and lights_on_count > 0 and lights_temps >= 450 }}"
+            value_template: >
+              {{ payload == 'on_press_release'
+                 and lights_on_count > 0
+                 and lights_temps >= 450 }}
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               color_temp: 250
 
+      # Increase color temperature when already on
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'on_press_release' and lights_on_count > 0 }}"
+            value_template: >
+              {{ payload == 'on_press_release'
+                 and lights_on_count > 0 }}
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               color_temp: "{{ lights_temps + 25 }}"
 
-      # On/off
+      # On/Off toggle actions
       - conditions:
           - condition: template
             value_template: "{{ payload == 'on_press_release' }}"
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
       - conditions:
           - condition: template
             value_template: "{{ payload == 'off_press_release' }}"
         sequence:
           - service: light.turn_off
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
       - conditions:
           - condition: template
             value_template: "{{ payload == 'toggle' }}"
         sequence:
           - service: light.toggle
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
 
-      #Brightness up
+      # Brightness up
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'up_press' or payload == 'brightness_up_click'}}
+              {{ payload == 'up_press' or payload == 'brightness_up_click' }}
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               brightness_step_pct: 9
-              #transition: 1
 
       - conditions:
           - condition: template
-            value_template: >
-              {{ payload == 'up_hold' }}
+            value_template: "{{ payload == 'up_hold' }}"
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               brightness_step_pct: 22
-              #transition: 1
 
-      #Brightness down
+      # Brightness down
       - conditions:
           - condition: template
             value_template: >
@@ -138,24 +144,21 @@ action:
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               brightness_step_pct: -9
-              #transition: 1
 
       - conditions:
           - condition: template
-            value_template: >
-              {{ payload == 'down_hold' }}
+            value_template: "{{ payload == 'down_hold' }}"
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               brightness_step_pct: -22
-              #transition: 1
 
-      #On/Off Hold
+      # On/Off Hold (set brightness very low)
       - conditions:
           - condition: template
             value_template: >
@@ -163,11 +166,11 @@ action:
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               brightness: 2
-              #transition: 1
 
+      # On/Off Hold (set brightness very high)
       - conditions:
           - condition: template
             value_template: >
@@ -175,7 +178,6 @@ action:
         sequence:
           - service: light.turn_on
             target:
-              area_id: "{{ area }}"
+              entity_id: "{{ light_group }}"
             data:
               brightness: 255
-              #transition: 1
