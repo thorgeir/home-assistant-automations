@@ -15,8 +15,11 @@ blueprint:
       selector:
         device:
           integration: mqtt
-          model: "Hue dimmer switch"
-          multiple: false
+          entity:
+            - domain: sensor
+              #device_class: [button]
+          #model: "Hue dimmer switch"
+          #multiple: false
   source_url: https://github.com/thorgeir/home-assistant-automations/blob/main/blueprints/HueDimmerAreaControllBlueprint.yaml
 mode: restart
 max_exceeded: silent
@@ -37,11 +40,48 @@ action:
   # Capture the action from the event payload (replace "action" with the proper key if needed)
   - variables:
       payload: "{{ trigger.payload }}"
+      lights_on_count: "{{ expand(area_entities(area_name(area)) | select('match', 'light')) | selectattr('state', 'eq', 'on') | list | count }}"
+      lights_temps: "{{ (expand(area_entities(area_name(area)) | select('match', 'light')) | list | first).attributes.color_temp }}"
+      area_scenes: "{{ expand(area_entities(area_name(area)) | select('match', 'scene') | list) }}"
+
+  - service: mqtt.publish
+    data:
+      topic: "{{ 'zigbee2mqtt/' ~ device_attr(device_id, 'name') ~ '/sceneid' }}"
+      payload: "42"
+      retain: true
+
+  #  - service: logbook.log
+  #    data:
+  #      name: Dimmer Command
+  #      message: "Action received: >{{ payload }}<"
+
   - service: logbook.log
     data:
       name: Dimmer Command
-      message: "Action received: >{{ payload }}<"
+      message: "Light temp : >{{ lights_temps }}<"
+
   - choose:
+      #scene 250 to 454
+      - conditions:
+          - condition: template
+            value_template: "{{ payload == 'on_press_release' and lights_on_count > 0 and lights_temps >= 450 }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              color_temp: 250
+
+      - conditions:
+          - condition: template
+            value_template: "{{ payload == 'on_press_release' and lights_on_count > 0 }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              area_id: "{{ area }}"
+            data:
+              color_temp: "{{ lights_temps + 25 }}"
+
       # On/off
       - conditions:
           - condition: template
@@ -57,19 +97,27 @@ action:
           - service: light.turn_off
             target:
               area_id: "{{ area }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ payload == 'toggle' }}"
+        sequence:
+          - service: light.toggle
+            target:
+              area_id: "{{ area }}"
 
-      #Up button
+      #Brightness up
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'up_press' }}
+              {{ payload == 'up_press' or payload == 'brightness_up_click'}}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
-              brightness_step_pct: 10
-              transition: 1
+              brightness_step_pct: 9
+              #transition: 1
+
       - conditions:
           - condition: template
             value_template: >
@@ -79,21 +127,22 @@ action:
             target:
               area_id: "{{ area }}"
             data:
-              brightness_step_pct: 20
-              transition: 1
+              brightness_step_pct: 22
+              #transition: 1
 
-      #Down button
+      #Brightness down
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'down_press' }}
+              {{ payload == 'down_press' or payload == 'brightness_down_click' }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
-              brightness_step_pct: -10
-              transition: 1
+              brightness_step_pct: -9
+              #transition: 1
+
       - conditions:
           - condition: template
             value_template: >
@@ -103,27 +152,30 @@ action:
             target:
               area_id: "{{ area }}"
             data:
-              brightness_step_pct: -20
-              transition: 1
+              brightness_step_pct: -22
+              #transition: 1
 
       #On/Off Hold
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'off_hold' }}
+              {{ payload == 'off_hold' or payload == 'brightness_down_hold' }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
               brightness: 2
+              #transition: 1
+
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'on_hold' }}
+              {{ payload == 'on_hold' or payload == 'brightness_up_hold' }}
         sequence:
           - service: light.turn_on
             target:
               area_id: "{{ area }}"
             data:
               brightness: 255
+              #transition: 1
