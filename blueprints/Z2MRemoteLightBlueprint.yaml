@@ -41,20 +41,35 @@ action:
       payload: "{{ trigger.payload }}"
       lights_on: "{{ states(light_group) == 'on' }}"
       lights_temps: "{{ state_attr(light_group,'color_temp') }}"
+      area: "{{ device_attr(device_id, 'area_id') }}"
+      scenesCount: "{{ expand(area_entities(area_name(area)) | select('match', 'scene') | list) | length }}"
+      nextScene: "{{ ((expand(area_entities(area_name(area)) | select('match', 'scene') | list) | sort(attribute='state') | first) or {'entity_id':''})['entity_id'] }}"
 
-  #  - service: logbook.log
-  #    data:
-  #      name: Dimmer Command
-  #      message: "Light temp : >{{ lights_temps }}<"
+  - service: logbook.log
+    data:
+      name: Dimmer Command
+      message: "scenes count: {{ scenesCount }}  next: {{ nextScene }}<"
 
   - choose:
+      # Apply next scene
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ (payload == 'on_press_release' or payload == 'on') 
+                  and lights_on 
+                  and scenesCount > 0 }}
+        sequence:
+          - service: scene.turn_on
+            target:
+              entity_id: "{{ nextScene }}"
+
       # Lower color temperature when already on and above threshold
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'on_press_release'
-                 and lights_on
-                 and lights_temps >= 450 }}
+              {{ (payload == 'on_press_release' or payload == 'on' )
+                  and lights_on
+                  and lights_temps >= 450 }}
         sequence:
           - service: light.turn_on
             target:
@@ -66,8 +81,8 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'on_press_release'
-                 and lights_on }}
+              {{ (payload == 'on_press_release' or payload == 'on' )
+                  and lights_on }}
         sequence:
           - service: light.turn_on
             target:
@@ -78,14 +93,14 @@ action:
       # On/Off toggle actions
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'on_press_release' }}"
+            value_template: "{{ payload == 'on_press_release' or payload == 'on' }}"
         sequence:
           - service: light.turn_on
             target:
               entity_id: "{{ light_group }}"
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'off_press_release' }}"
+            value_template: "{{ payload == 'off_press_release' or payload == 'off' }}"
         sequence:
           - service: light.turn_off
             target:
@@ -98,11 +113,22 @@ action:
             target:
               entity_id: "{{ light_group }}"
 
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ payload == 'action_brightness_delta' }}
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ light_group }}"
+            data:
+              brightness_step_pct: 9
+
       # Brightness up
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'up_press' or payload == 'brightness_up_click' }}
+              {{ payload == 'up_press' or payload == 'brightness_up_click' or payload == 'brightness_move_up' }}
         sequence:
           - service: light.turn_on
             target:
@@ -124,7 +150,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'down_press' or payload == 'brightness_down_click' }}
+              {{ payload == 'down_press' or payload == 'brightness_down_click' or payload == 'brightness_move_down'}}
         sequence:
           - service: light.turn_on
             target:
