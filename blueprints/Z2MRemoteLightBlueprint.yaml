@@ -43,12 +43,19 @@ action:
       lights_temps: "{{ state_attr(light_group,'color_temp') }}"
       area: "{{ device_attr(device_id, 'area_id') }}"
       scenesCount: "{{ expand(area_entities(area_name(area)) | select('match', 'scene') | list) | length }}"
-      nextScene: "{{ ((expand(area_entities(area_name(area)) | select('match', 'scene') | list) | sort(attribute='state') | first) or {'entity_id':''})['entity_id'] }}"
+      nextScene: >
+        {{
+          (
+            (expand(area_entities(area_name(area)) | select('match', 'scene') | list) | sort(attribute='state') | selectattr('state', '==', 'unknown') | first)
+            or (expand(area_entities(area_name(area)) | select('match', 'scene') | list) | sort(attribute='state') | first)
+            or {'entity_id':''}
+          )['entity_id'] 
+        }}
 
   - service: logbook.log
     data:
       name: Dimmer Command
-      message: "scenes count: {{ scenesCount }}  next: {{ nextScene }}<"
+      message: "scenes count: {{ scenesCount }}  next: {{ nextScene }}"
 
   - choose:
       # Apply next scene
