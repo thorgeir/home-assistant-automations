@@ -1,5 +1,5 @@
 blueprint:
-  name: Dimmer Switch – Light Group Control (zigbee2mqtt)
+  name: Dimmer Switch – Light Group Control
   description: >
     Control a light group using the Philips Hue Dimmer Switch,
     replicating the default behavior of the Philips Hue app.
