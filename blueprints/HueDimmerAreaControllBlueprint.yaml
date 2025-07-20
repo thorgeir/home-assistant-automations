@@ -39,18 +39,24 @@ condition:
 action:
   - variables:
       payload: "{{ trigger.payload }}"
-      lights: "{{ expand(area_entities(area_name(area))) | select('match', 'light') | list }}"
-      lights_on_count: "{{ lights | selectattr('state', 'eq', 'on') | list | count }}"
+      lights: "{{ expand(area_entities(area_name(area)) | select('match', 'light')) | list }}"
+      lights_on_count: "{{ expand(area_entities(area_name(area)) | select('match', 'light')) | selectattr('state', 'eq', 'on')  | list | count }}"
       primary_light: "{{ lights | list | first }}"
-      lights_temps: "{{ primary_light.attributes.color_temp if primary_light else 0 }}"
-      group_scenes: "{{ expand(area_entities(area_name(area))) | select('match', 'scene') | list }}"
-      scenes_count: "{{ group_scenes | length }}"
-      # Determine next scene: first unseen, else cycle back to first
+      scenes_count: "{{ expand(area_entities(area_name(area)) | select('match', 'scene') | list) | length }}"
       next_scene: >
-        {{ (
-          (group_scenes | selectattr('state', 'eq', 'unknown') | list | first)
-          or (group_scenes | list | first)
-        ).entity_id if scenes_count > 0 else '' }}
+        {{
+          (
+            (expand(area_entities(area_name(area)) | select('match', 'scene') | list) | sort(attribute='state') | selectattr('state', '==', 'unknown') | first)
+            or (expand(area_entities(area_name(area)) | select('match', 'scene') | list) | sort(attribute='state') | first)
+            or {'entity_id':''}
+          )['entity_id'] 
+        }}
+
+  - service: logbook.log
+    data:
+      name: Dimmer Debug
+      message: >
+        Payload={{ payload }} LightsOn={{ lights_on_count }} Scenes={{ scenes_count }} NextScene={{ next_scene }}
 
   - choose:
       # Cycle scene on press when lights on
@@ -62,32 +68,6 @@ action:
           - service: scene.turn_on
             target:
               entity_id: "{{ next_scene }}"
-
-      # Adjust color temperature down if above threshold
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ payload in ['on_press_release', 'on']
-                 and lights_on_count > 0
-                 and lights_temps >= 450 }}
-        sequence:
-          - service: light.turn_on
-            target:
-              area_id: "{{ area }}"
-            data:
-              color_temp: 250
-
-      # Adjust color temperature up if lights on
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ payload in ['on_press_release', 'on'] and lights_on_count > 0 }}
-        sequence:
-          - service: light.turn_on
-            target:
-              area_id: "{{ area }}"
-            data:
-              color_temp: "{{ lights_temps + 25 }}"
 
       # On / Off / Toggle
       - conditions:
