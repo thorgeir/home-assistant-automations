@@ -1,5 +1,5 @@
 blueprint:
-  name: Dimmer Switch – Area Control
+  name: Dimmer Switch – Light Group Control
   description: "Control lights in a specified area using the Philips Hue Dimmer Switch, replicating the default behavior of the Philips Hue app."
   domain: automation
   input:
