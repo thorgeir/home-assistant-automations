@@ -62,7 +62,7 @@ action:
   - service: logbook.log
     data:
       name: Dimmer Command
-      message: "scenes count: {{ scenesCount }}  next: {{ nextScene }}"
+      message: "scenes count: {{ scenesCount }} on area : {{ area }}  next: {{ nextScene }}"
 
   - choose:
       # Apply next scene
