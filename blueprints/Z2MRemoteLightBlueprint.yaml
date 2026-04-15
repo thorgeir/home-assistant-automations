@@ -6,10 +6,10 @@ blueprint:
     of the Philips Hue app.
     
     Aqara H2 (2-gang, WS-K08E) button mapping:
-      [  LEFT  ] [  RIGHT  ]  single = turn on
-      [LEFT_DOWN] [RIGHT_DOWN]  single = turn off
+      [  LEFT  ] [  RIGHT       ]  left = on,  right = brightness up
+      [LEFT_DOWN] [RIGHT_DOWN   ]  left = off, right = brightness down
       double bottom = cycle scenes
-      hold left_down = brightness down,  hold right_down = brightness up
+      hold left_down = min brightness,  hold right_down = big dim down
   domain: automation
   input:
     light_group:
@@ -107,14 +107,14 @@ action:
       # On/Off toggle actions
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'on_press_release' or payload == 'on' or payload == 'single_left' or payload == 'single_right' }}"
+            value_template: "{{ payload == 'on_press_release' or payload == 'on' or payload == 'single_left' }}"
         sequence:
           - service: light.turn_on
             target:
               entity_id: "{{ light_group }}"
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'off_press_release' or payload == 'off' or payload == 'single_left_down' or payload == 'single_right_down' }}"
+            value_template: "{{ payload == 'off_press_release' or payload == 'off' or payload == 'single_left_down' }}"
         sequence:
           - service: light.turn_off
             target:
@@ -142,7 +142,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'up_press' or payload == 'brightness_up_click' or payload == 'brightness_move_up' or payload == 'double' }}
+              {{ payload == 'up_press' or payload == 'brightness_up_click' or payload == 'brightness_move_up' or payload == 'double' or payload == 'single_right' }}
         sequence:
           - service: light.turn_on
             target:
@@ -152,7 +152,7 @@ action:
 
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'up_hold' or payload == 'hold_right_down' }}"
+            value_template: "{{ payload == 'up_hold' }}"
         sequence:
           - service: light.turn_on
             target:
@@ -164,7 +164,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'down_press' or payload == 'brightness_down_click' or payload == 'brightness_move_down'}}
+              {{ payload == 'down_press' or payload == 'brightness_down_click' or payload == 'brightness_move_down' or payload == 'single_right_down'}}
         sequence:
           - service: light.turn_on
             target:
@@ -174,7 +174,7 @@ action:
 
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'down_hold' or payload == 'hold_left_down' }}"
+            value_template: "{{ payload == 'down_hold' or payload == 'hold_right_down' }}"
         sequence:
           - service: light.turn_on
             target:
@@ -186,7 +186,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ payload == 'off_hold' or payload == 'brightness_down_hold' or payload == 'hold' }}
+              {{ payload == 'off_hold' or payload == 'brightness_down_hold' or payload == 'hold' or payload == 'hold_left_down' }}
         sequence:
           - service: light.turn_on
             target:
